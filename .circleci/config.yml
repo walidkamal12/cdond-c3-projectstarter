@@ -1,4 +1,6 @@
 version: 2.1
+orbs: 
+  slack: circleci/slack@4.10.1
 
 commands:
   destroy-environment:
@@ -80,6 +82,24 @@ jobs:
             cd frontend
             npm install
             npm run test
+      - slack/notify:
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "plain_text",
+                      "text": "*This is a text notification*",
+                      "emoji": true
+                    }
+                  ]
+                }
+              ]
+            }
+          event: always
+
 
   test-backend:
     docker:
@@ -94,6 +114,23 @@ jobs:
             cd backend
             npm install
             npm run test            
+      - slack/notify:
+          custom: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "plain_text",
+                      "text": "*This is a text notification*",
+                      "emoji": true
+                    }
+                  ]
+                }
+              ]
+            }
+          event: always
 
   scan-frontend:
     docker:
