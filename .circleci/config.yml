@@ -258,8 +258,6 @@ jobs:
             else
             curl --insecure https://kvdb.io/Q7w7K5Nzdf7KZ2BhSYhLRC/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '0'
             fi
-      - revert-migrations:
-          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
       - destroy-environment:
           workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
           jobName: Migration
@@ -284,8 +282,8 @@ workflows:
                only: [test-feature-branch]
       - configure-infrastructure:
            requires: [deploy-infrastructure]
-      # - run-migrations:
-      #     requires: [configure-infrastructure]
+      - run-migrations:
+           requires: [configure-infrastructure]
       # - deploy-frontend:
       #     requires: [run-migrations]
       # - deploy-backend:
