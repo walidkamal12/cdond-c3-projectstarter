@@ -98,7 +98,7 @@ jobs:
                 }
               ]
             }
-          event: always
+          event: pass
 
 
   test-backend:
