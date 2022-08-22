@@ -1,0 +1,36 @@
+---
+  - name: create backend directory
+    file:
+      path: ~/app
+      state: directory
+  - name: unarchive backend files
+    unarchive:
+      src: artifact.tar.gz
+      dest: ~/app/
+      remote_src: no
+  - name: download node 13
+    shell: |
+      curl -sL https://deb.nodesource.com/setup_13.x -o /tmp/nodesource_setup.sh
+      bash /tmp/nodesource_setup.sh
+  - name: install node 13
+    apt:
+      name: nodejs
+      state: latest
+  - name: install dependencies
+    shell: |
+      cd ~/app/
+      npm install
+    register: npm_output
+  - name: start pm2 server
+    shell: |
+      cd ~/app/
+      npm install
+      pm2 stop default
+      pm2 start npm -- start
+    register: pm2_output
+  - name: output pm2 data to console
+    debug:
+      msg: "{{ pm2_output.stdout_lines }}"
+  - name: output npm data to console
+    debug:
+      msg: "{{ npm_output.stdout_lines }}"
