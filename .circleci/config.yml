@@ -122,6 +122,16 @@ jobs:
             npm install
             npm audit fix --audit-level=critical --force
             npm audit --audit-level=critical
+      - slack/notify:
+          event: fail
+          custom: |
+            {"blocks": [{
+              "type": "section",
+              "fields": [{
+                  "type": "plain_text",
+                  "text": "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH};${CIRCLE_JOB}\nfrontend package auditing failure",
+                  "emoji": true
+                }]}]}
             
   scan-backend:
     docker:
@@ -138,7 +148,16 @@ jobs:
             npm audit fix --audit-level=critical --force
             npm audit fix --audit-level=critical --force
             npm audit --audit-level=critical
-
+      - slack/notify:
+          event: fail
+          custom: |
+            {"blocks": [{
+              "type": "section",
+              "fields": [{
+                  "type": "plain_text",
+                  "text": "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH};${CIRCLE_JOB}\nfrontend package auditing failure",
+                  "emoji": true
+                }]}]}
 workflows:
   default:
     jobs:
