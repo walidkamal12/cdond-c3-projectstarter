@@ -122,7 +122,6 @@ jobs:
             npm install
             npm audit fix --audit-level=critical --force
             npm audit --audit-level=critical
-            exit 1
       - slack/notify:
           event: fail
           custom: |
@@ -160,6 +159,42 @@ jobs:
                   "text": "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH};${CIRCLE_JOB}\nfrontend package auditing failure",
                   "emoji": true
                 }]}]}
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws
+    steps:
+      # Checkout code from git
+      - checkout
+      - run:
+          name: install tar and gzip
+          command: yum install tar gzip -y
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy \
+            --template-file .circleci/files/backend.yml \
+            --tags project=UdaPeople \
+            --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
+      - run:
+          name: Ensure front-end infrastructure exist
+          command: |
+            aws cloudformation deploy \
+            --template-file .circleci/files/frontend.yml \
+            --tags project=UdaPeople \
+            --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
+      - run:
+          name: Add back-end ip to ansible inventory
+          command: aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text >> .circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/ansible/inventory.txt
+      - destroy-environment:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          jobName: Deployment
+
 workflows:
   default:
     jobs:
