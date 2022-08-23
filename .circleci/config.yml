@@ -61,7 +61,6 @@ jobs:
               cd frontend
               npm install
               npm run build
-              exit 1
       - save_cache:
           paths: [frontend/node_modules]
           key: frontend-build
@@ -75,7 +74,7 @@ jobs:
                   "text": "${CIRCLE_PROJECT_REPONAME}:${CIRCLE_BRANCH};${CIRCLE_JOB}\nfrontend package auditing failure",
                   "emoji": true
                 }]}]}
-
+                
           
   build-backend:
     docker:
@@ -274,32 +273,149 @@ jobs:
           workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
           jobName: Migration
 
+  deploy-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      # Checkout code from git
+      - checkout
+      - restore_cache:
+          keys: [frontend-scan]
+      - run: 
+          name: install awscli 
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y python-pip
+            sudo pip install --upgrade awscli
+      - run:
+          name: Install dependencies
+          command: |
+            cd frontend
+            sudo npm install webpack-dev-server -g
+            sudo npm install
+      - run:
+          name: Get backend url
+          command: |
+            # your code here
+            export BACKEND_IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo $API_URL >> frontend/.env
+            echo "${API_URL}"
+      - run:
+          name: install node packages
+          command: |
+            cd frontend
+            npm install
+      - run:
+          name: build production frontend
+          command: |
+            cd frontend
+            export BACKEND_IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
+            export API_URL="http://${BACKEND_IP}:3030"
+            npm run build:prod
+      - run:
+          name: create artifact
+          command: |
+            cd frontend
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
+      - run:
+          name: put data in bucket
+          command: |
+            # your code here
+            cd frontend
+            aws s3 cp dist s3://udapeople-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+      # Here's where you will add some code to rollback on failure
+
+  deploy-backend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      # Checkout code from git
+      - checkout
+      - restore_cache:
+          keys: [scan-backend]
+      - run: 
+          name: install awscli 
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y python3 python3-pip
+            sudo pip3 install --upgrade awscli
+      - run: 
+          name: install ansible
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y ansible openssh-server
+      - run:
+          name: install tar and gzip
+          command: |
+            sudo apt-get update
+            sudo apt-get install tar gzip
+      # Add ssh keys with fingerprint
+      - add_ssh_keys: 
+          fingerprints: ["bf:ec:ad:0d:27:83:8c:48:f0:c3:5e:21:32:c4:42:46"]
+      # attach workspace
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: echo working dir
+          command: pwd
+      - run:
+          name: install packages
+          command: |
+            cd backend
+            npm install
+      - run:
+          name: build packages
+          command: |
+            cd backend
+            npm run build
+      - run:
+          name: archive directory
+          command: tar -C backend -czvf artifact.tar.gz .
+      - run:
+          name: inventory content
+          command: |
+            cd .circleci/ansible
+            cat inventory.txt
+      -  run:
+          name: move backend to ansible
+          command: mv artifact.tar.gz .circleci/ansible/roles/deploy/files/
+      - run:
+          name: run ansible playbook
+          command: |
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt deploy-backend.yml
+      # Here's where you will add some code to rollback on failure  
+      - destroy-environment:
+          workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
+          jobName: Backend Deployment
+
 workflows:
   default:
     jobs:
       - build-frontend
-      # - build-backend
-      # - test-frontend:
-      #      requires: [build-frontend]
-      # - test-backend:
-      #      requires: [build-backend]
-      # - scan-backend:
-      #      requires: [build-backend]
-      # - scan-frontend:
-      #      requires: [build-frontend]
-      # - deploy-infrastructure:
-      #      requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+      - build-backend
+      - test-frontend:
+           requires: [build-frontend]
+      - test-backend:
+           requires: [build-backend]
+      - scan-backend:
+           requires: [build-backend]
+      - scan-frontend:
+           requires: [build-frontend]
+      - deploy-infrastructure:
+           requires: [test-frontend, test-backend, scan-frontend, scan-backend]
           #  filters:
           #    branches:
           #      only: [test-feature-branch]
-      # - configure-infrastructure:
-      #      requires: [deploy-infrastructure]
-      # - run-migrations:
-      #      requires: [configure-infrastructure]
-      # - deploy-frontend:
-      #     requires: [run-migrations]
-      # - deploy-backend:
-      #     requires: [run-migrations]
+      - configure-infrastructure:
+           requires: [deploy-infrastructure]
+      - run-migrations:
+           requires: [configure-infrastructure]
+      - deploy-frontend:
+           requires: [run-migrations]
+      - deploy-backend:
+           requires: [run-migrations]
       # - smoke-test:
       #     requires: [deploy-backend, deploy-frontend]
       # - cloudfront-update:
