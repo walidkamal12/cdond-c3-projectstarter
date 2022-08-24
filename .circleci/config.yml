@@ -27,25 +27,25 @@ commands:
           command: |
             aws cloudformation delete-stack --stack-name udapeople-frontend-<<parameters.workflowID>>
             aws cloudformation delete-stack --stack-name udapeople-backend-<<parameters.workflowID>>
-
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
     parameters:
-      # Add parameter here     
+      workflowID:
+        type: string
     steps:
       - run:
           name: Revert migrations
-          # Add when this will run
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-            SUCCESS = 1
+            SUCCESS=$(curl --insecure  https://kvdb.io/Q7w7K5Nzdf7KZ2BhSYhLRC/migration_<<parameters.workflowID>>)
             if(( $SUCCESS==1 )); 
             then
-            #  cd ~/project/backend
-            #  npm install
+             cd ~/project/backend
+             npm install
             #  Add revert code here. You can find this in the Getting Started section.
-              exit 1
+             npm run migration:revert
             fi
+          when: on_fail
             
 jobs:
   build-frontend:
@@ -390,6 +390,31 @@ jobs:
           workflowID: ${CIRCLE_WORKFLOW_ID:0:7}
           jobName: Backend Deployment
 
+  smoke-test:
+    docker:
+      - image:  python:3.7.13-alpine3.16
+    steps:
+      # Checkout code from git
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --upgrade curl aws-cli
+      - run:
+          name: delay the next command for 15 seconds
+          command: sleep 15
+      - run:
+          name: Backend smoke test.
+          command: |
+            export BACKEND_IP=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+            if curl --ipv4 --insecure --retry 10 -v "${API_URL}/api/status" | grep "ok"
+            then
+                exit 1
+            else
+                exit 1
+            fi
+
 workflows:
   default:
     jobs:
@@ -416,8 +441,8 @@ workflows:
            requires: [run-migrations]
       - deploy-backend:
            requires: [run-migrations]
-      # - smoke-test:
-      #     requires: [deploy-backend, deploy-frontend]
+      - smoke-test:
+           requires: [deploy-backend, deploy-frontend]
       # - cloudfront-update:
       #     requires: [smoke-test]
       # - cleanup:
