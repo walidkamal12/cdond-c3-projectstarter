@@ -13,11 +13,11 @@ Parameters:
   IAMSecretKey:
     Description:  Secret Access Key of Prometheus user
     Type: String
-  GoogleMail:
-    Description: The email used for alertmanager
+  WebhookUrl:
+    Description: The webhook used to send messages on slack
     Type: String
-  GoogleSecurityPassword:
-    Description: The app password given to alert manager
+  Channel:
+    Description: The channel targetted by the webhook
     Type: String
   PendingStateInterval:
     Description: the time taken between a node being down and an email sent to notify
@@ -101,19 +101,16 @@ Resources:
           mkdir /var/lib/alertmanager
 
           rm -rf alertmanager*
-          echo "route:
-                  group_by: [Alertname]
-                  receiver: email-me
-
-                receivers:
-                - name: email-me
-                  email_configs:
-                  - to: ${GoogleMail}
-                    from: YOUR_EMAIL_ADDRESS
-                    smarthost: smtp.gmail.com:587
-                    auth_username: ${GoogleMail}
-                    auth_identity: Prometheus
-                    auth_password: ${GoogleSecurityPassword}" > /etc/prometheus/alertmanager.yml
+          echo "global:
+            resolve_timeout: 1m
+            slack_api_url: ${WebhookUrl}
+          route:
+            receiver: 'slack-notifications'
+          receivers:
+          - name: 'slack-notifications'
+            slack_configs:
+            - channel: '${Channel}'
+              send_resolved: true" > /etc/prometheus/alertmanager.yml
           echo "[Unit]
                 Description=Alert Manager
                 Wants=network-online.target
