@@ -433,7 +433,7 @@ jobs:
             echo "${API_URL}"
             if curl --ipv4 --insecure --retry 10 -v "${API_URL}/api/status" | grep "ok"
             then
-                exit 0
+                exit 1
             else
                 exit 1
             fi
