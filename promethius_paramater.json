@@ -1,0 +1,30 @@
+[
+    {
+        "ParameterKey": "KeyName",
+        "ParameterValue": "Udacity"
+    },
+    {
+        "ParameterKey": "AMI",
+        "ParameterValue": "ami-052efd3df9dad4825"
+    },
+    {
+        "ParameterKey": "IAMAccessID",
+        "ParameterValue": "AKIAZMQ3CGVEYT4ICIHO"
+    },
+    {
+        "ParameterKey": "IAMSecretKey",
+        "ParameterValue": "GrTQgxW7+jPT+uQYiXKsi4zCrdOQstekhtS3kSHr"
+    },
+    {
+        "ParameterKey": "WebhookUrl",
+        "ParameterValue": "https://hooks.slack.com/services/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"
+    },
+    {
+        "ParameterKey": "Channel",
+        "ParameterValue": "#general"
+    },
+    {
+        "ParameterKey": "PendingStateInterval",
+        "ParameterValue": "1"
+    }
+]
