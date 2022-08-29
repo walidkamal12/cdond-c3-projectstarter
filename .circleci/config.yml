@@ -227,7 +227,7 @@ jobs:
       - checkout
       # Add ssh keys with fingerprint
       - add_ssh_keys: 
-          fingerprints: ["0f:5d:f5:4a:43:8a:e9:e6:fe:b1:52:4f:dc:09:b6:82"]
+          fingerprints: ["7c:42:43:0a:1f:94:b8:2c:f7:9a:45:c5:c8:e2:9a:05"]
       # attach workspace
       - attach_workspace:
           at: ~/
@@ -371,7 +371,7 @@ jobs:
             sudo apt-get install tar gzip
       # Add ssh keys with fingerprint
       - add_ssh_keys: 
-          fingerprints: ["bf:ec:ad:0d:27:83:8c:48:f0:c3:5e:21:32:c4:42:46"]
+          fingerprints: ["7c:42:43:0a:1f:94:b8:2c:f7:9a:45:c5:c8:e2:9a:05"]
       # attach workspace
       - attach_workspace:
           at: ~/
